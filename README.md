@@ -2,7 +2,7 @@
 MSET entrypoint for the ARM9 loader.bin of PASTA CFW
 
 
-Thi is a mod of <a href"https://github.com/nop90/FirmLaunch_MSET_4.X">FirmLaunch for MSET</a> that , instead of running an included arm9 payload before performing the firm reboot, load it form the 3DS SD.
+Thi is a mod of <a href="https://github.com/nop90/FirmLaunch_MSET_4.X">FirmLaunch for MSET</a> that , instead of running an included arm9 payload before performing the firm reboot, load it form the 3DS SD.
 
 It's intended for loading the PASTA CFW loader.bin in ther \3ds\PastaCFW folder, but renaming the path and filename in the source can load any arm9 payload created for Brahma.
 
