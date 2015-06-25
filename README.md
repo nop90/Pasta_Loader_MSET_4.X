@@ -6,7 +6,7 @@ Thi is a mod of <a href="https://github.com/nop90/FirmLaunch_MSET_4.X">FirmLaunc
 
 It's intended for loading the PASTA CFW loader.bin in the \3ds\PastaCFW folder, but renaming the path and filename in the source, it can load any arm9 payload created for Brahma.
 
-It works with the ar9_code.bin payload from the Firmlaunch for MSET build, but hangs with the PastaCFW payload.
+It works with the arm9_code.bin payload from the Firmlaunch for MSET build, but hangs with the PastaCFW payload.
 
 I'm investigating the reason. Let me know if you have an hint.
 
