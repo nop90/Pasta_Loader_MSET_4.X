@@ -3,6 +3,8 @@
 ;;       on mset (system settings) exploit.      ;;
 ;;             FOR 4.X CONSOLES ONLY             ;;
 ;;   -Roxas75                                    ;;
+;;           Adapted to load PastaCFW            ;;
+;;   -NOP90                                      ;;
 ;;-----------------------------------------------;;
 
 .nds
@@ -10,8 +12,12 @@
 .arm
 
 ;-------------------------- GLOBALS ------------------------------
-.definelabel top_fb1,                                   0x14184E60
-.definelabel top_fb2,                                   0x141CB370
+.definelabel top_fbl1,                                  0x14184E60
+.definelabel top_fbr1,                                  0x14282160
+.definelabel top_fbl2,                                  0x141CB370
+.definelabel top_fbr2,                                  0x142C8670
+.definelabel bot_fb1, 									0x142118E0 
+.definelabel bot_fb2, 									0x14249CF0
 .definelabel gsp_addr,                                  0x14000000
 .definelabel gsp_handle,                                0x0015801D
 .definelabel gsp_code_addr,                             0x00100000
@@ -31,6 +37,7 @@
 
 .definelabel ifile_read,                                0x001b3954
 .definelabel ifile_write,                               0x001B3B50
+.definelabel GPU_Regs,									0xFFFCE000
 
 ;-------------------------- COSTANTS -----------------------------
 costants:
@@ -81,7 +88,7 @@ _start:
 
     open_file:
         ldr r0, =filehandle
-        ldr r1, =filename
+        ldr r1, =splashfile
         mov r2, #1  
         ldr r4, =ifile_open
         blx r4
@@ -89,11 +96,64 @@ _start:
     read_data:
         ldr r0, =filehandle
         ldr r1, =filehandle+0x20
-        ldr r2, =top_fb1 ;using this address as buffer is not elegant, but it doesn't seem to be the FB address and it works, so who cares?
-        ldr r3, =0x20000 ;max about 100K for the payload. Should be enought.
+        ldr r2, =top_fbl1 
+        ldr r3, =0x46500
         ldr r4, =ifile_read
         blx r4
 
+clonefb:
+        ldr r0, =top_fbl1		
+        ldr r2, =top_fbl2
+        ldr r3, =top_fbr1
+        ldr r4, =top_fbr2
+
+        ldr r1, =0x46500
+        add r1, r0
+        memcpy_fb:
+            ldmia r0!, {r5}
+            stmia r2!, {r5}
+            stmia r3!, {r5}
+            stmia r4!, {r5}
+            cmp r0, r1
+            bcc memcpy_fb
+
+	clear_filehandle2:
+        ldr r0, =filehandle
+        ldr r1, =filehandle+0x20
+        ldr r2, =0x0
+        clfloop2:
+            str r2, [r0]
+            add r0, r0, #4
+            cmp r0, r1
+            blt clfloop2
+
+    open_file2:
+        ldr r0, =filehandle
+        ldr r1, =loader
+        mov r2, #1  
+        ldr r4, =ifile_open
+        blx r4
+
+    read_data2:
+        ldr r0, =filehandle
+        ldr r1, =filehandle+0x20
+        ldr r2, =bot_fb1  ; not elegant, but the fb is writable and I can check on screen if it loads the file 
+        ldr r3, =0x38400
+        ldr r4, =ifile_read
+        blx r4
+		
+	clonefb2: ; Clone the bottom FB (it's only to check correct file loading)
+        ldr r0, =bot_fb1		
+        ldr r2, =bot_fb2
+
+        ldr r1, =0x38400
+        add r1, r0
+        memcpy_fb2:
+            ldmia r0!, {r5}
+            stmia r2!, {r5}
+            cmp r0, r1
+            bcc memcpy_fb2
+		
     get_memchunk:
         mov r0, #1
         str r0, [sp]
@@ -252,9 +312,9 @@ arm11_kernel_entry:
         bl invalidate_dcache
         bl invalidate_icache
 
-    copy_arm9:	
-        ldr r0, =top_fb1 ; used buffer for file_read
-        ldr r1, =0x20000 ; adjust this to be the same of that in file_read
+    copy_arm9:
+        ldr r0, =bot_fb1 ; used buffer for file_read
+        ldr r1, =0x38400 ; adjust this to be the same of that in file_read
         add r1, r0
         ldr r2, =fcram_address
         ldr r2, [r2]
@@ -345,14 +405,18 @@ invalidate_icache:
     .incbin "build/arm9hax.bin"
     jump_table_end:
 
-;------------------------------- ARM9 CODE ------------------------------
+;------------------------------- FILE NAMES ------------------------------
 .align 4
- arm9_code:
- ;   .incbin "build/arm9_code.bin"
- arm9_code_end:
 
-filename: dcw  "YS:/3ds/PastaCFW/loader2.bin"
-;filename: dcw  "YS:/arm9_code.bin"
+splashfile: dcw  "YS:/3DS/pastacfw/ui/apptop.bin"
+
+.word 0x00000000  ; Trick to terminate the string correctly. The compiler seems to use a single byte NULL string terminator instead of a NULL half word. 
+
+.align 4
+loader: dcw  "YS:/3ds/PastaCFW/loader.bin"
+;loader: dcw  "YS:/3ds/pastacfw/arm9_code.bin" ; old simple arm9_code.bin of MSET firmlaunchax
+
+.word 0x00000000
 
 
 .pool
